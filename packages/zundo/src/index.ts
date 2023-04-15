@@ -5,7 +5,7 @@ import type {
   StoreApi,
 } from 'zustand';
 import { createVanillaTemporal } from './temporal';
-import type { PopArgument, TemporalState, Write, ZundoOptions } from './types';
+import type { TemporalState, Write, ZundoOptions } from './types';
 
 type Zundo = <
   TState,
@@ -28,9 +28,9 @@ declare module 'zustand/vanilla' {
 }
 
 type ZundoImpl = <TState>(
-  config: PopArgument<StateCreator<TState, [], []>>,
+  config: StateCreator<TState, [], []>,
   options: ZundoOptions<TState>,
-) => PopArgument<StateCreator<TState, [], []>>;
+) => StateCreator<TState, [], []>;
 
 const zundoImpl: ZundoImpl = (config, baseOptions) => (set, get, _store) => {
   type TState = ReturnType<typeof config>;
@@ -49,6 +49,8 @@ const zundoImpl: ZundoImpl = (config, baseOptions) => (set, get, _store) => {
     StoreApi<TState>,
     [['temporal', StoreAddition]]
   >;
+  const { setState } = store;
+
   // TODO: should temporal be only temporalStore.getState()?
   // We can hide the rest of the store in the secret internals.
   store.temporal = temporalStore;
@@ -56,6 +58,13 @@ const zundoImpl: ZundoImpl = (config, baseOptions) => (set, get, _store) => {
   const curriedUserLandSet = userlandSetFactory(
     temporalStore.getState().__internal.handleUserSet,
   );
+
+  const modifiedSetState: typeof setState = (state, replace) => {
+    const pastState = partialize(get());
+    setState(state, replace);
+    curriedUserLandSet(pastState);
+  };
+  store.setState = modifiedSetState;
 
   const modifiedSetter: typeof set = (state, replace) => {
     // Get most up to date state. Should this be the same as the state in the callback?
@@ -68,3 +77,4 @@ const zundoImpl: ZundoImpl = (config, baseOptions) => (set, get, _store) => {
 };
 
 export const temporal = zundoImpl as unknown as Zundo;
+export type { ZundoOptions, Zundo, TemporalState };

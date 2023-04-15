@@ -1,4 +1,4 @@
-import createVanilla, { type StoreApi } from 'zustand/vanilla';
+import { createStore, type StoreApi } from 'zustand';
 import type { TemporalStateWithInternals, ZundoOptions } from './types';
 
 export const createVanillaTemporal = <TState>(
@@ -14,13 +14,10 @@ export const createVanillaTemporal = <TState>(
   };
   const { partialize, onSave, limit, equality } = options;
 
-  return createVanilla<TemporalStateWithInternals<TState>>()((set, get) => {
-    const pastStates: TState[] = [];
-    const futureStates: TState[] = [];
-
+  return createStore<TemporalStateWithInternals<TState>>()((set, get) => {
     return {
-      pastStates,
-      futureStates,
+      pastStates: [],
+      futureStates: [],
       undo: (steps = 1) => {
         const ps = get().pastStates.slice();
         const fs = get().futureStates.slice();
@@ -28,9 +25,7 @@ export const createVanillaTemporal = <TState>(
           return;
         }
 
-        const skippedPastStates = ps.splice(
-          ps.length - (steps - 1),
-        );
+        const skippedPastStates = ps.splice(ps.length - (steps - 1));
         const pastState = ps.pop();
         if (pastState) {
           fs.push(partialize(userGet()));
@@ -47,9 +42,7 @@ export const createVanillaTemporal = <TState>(
           return;
         }
 
-        const skippedFutureStates = fs.splice(
-          fs.length - (steps - 1),
-        );
+        const skippedFutureStates = fs.splice(fs.length - (steps - 1));
         const futureState = fs.pop();
         if (futureState) {
           ps.push(partialize(userGet()));
@@ -75,8 +68,7 @@ export const createVanillaTemporal = <TState>(
       __internal: {
         onSave,
         handleUserSet: (pastState) => {
-          const { trackingStatus, pastStates, __internal } =
-            get();
+          const { trackingStatus, pastStates, __internal } = get();
           const ps = pastStates.slice();
           const currentState = partialize(userGet());
           if (

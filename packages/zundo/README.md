@@ -13,18 +13,18 @@ Try a live [demo](https://codesandbox.io/s/currying-flower-2dom9?file=/src/App.t
 ## Install
 
 ```sh
-npm i zustand zundo@beta
+npm i zustand zundo
 ```
 
-> zustand v4.1.0 or higher is required for TS usage. v4.0.0 or higher is required for JS usage.
+> zustand v4.3.0 or higher is required for TS usage. v4.0.0 or higher is required for JS usage.
 
 ## Background
 
 - Solves the issue of managing state in complex user applications
 - Provides simple middleware to add undo/redo capabilities
 - Leverages zustand for state management, keeping the internals small
-- Middleware can be used with multiple stores in the same app
-- Unopinionated and extensible
+- Works with multiple stores in the same app
+- Has an unopinionated and extensible API
 
 <div style="width: 100%; display: flex;">
 <img src="https://github.com/charkour/zundo/blob/main/zundo-mascot.png" style="margin: auto;" alt="Bear wearing a button up shirt textured with blue recycle symbols eating a bowl of noodles with chopsticks." width=300 />
@@ -36,7 +36,7 @@ This returns the familiar store accessible by a hook! But now your store tracks 
 
 ```tsx
 import { temporal } from 'zundo'
-import create from 'zustand'
+import { create } from 'zustand'
 
 // define the store (typescript)
 interface StoreState {
@@ -60,9 +60,13 @@ const useStoreWithUndo = create<StoreState>()(
 If you're using React, you can convert the store to a React hook using create from `zustand`.
 
 ```tsx
-import { create } from 'zustand'
+import { useStore } from 'zustand'
+import type { TemporalState } from 'zundo'
 
-const useTemporalStore = create(useStoreWithUndo.temporal)
+const useTemporalStore = <T,>(
+  selector: (state: TemporalState<StoreState>) => T,
+  equality?: (a: T, b: T) => boolean,
+) => useStore(originalStore.temporal, selector, equality);
 ```
 
 ## Then bind your components
@@ -80,7 +84,7 @@ const App = () => {
     undo,
     redo,
     clear
-  } = useTemporalStore();
+  } = useTemporalStore((state) => state);
   // or if you don't use create from zustand, you can use the store directly
   // } = useStoreWithUndo.temporal.getState();
 
@@ -173,7 +177,7 @@ const useStore = create<StoreState>(
 For performance reasons, you may want to use a custom `equality` function to determine when a state change should be tracked. You can write your own or use something like `lodash/deepEqual` or `zustand/shallow`. By default, all state changes to your store are tracked.
 
 ```tsx
-import shallow from 'zustand/shallow'
+import { shallow } from 'zustand/shallow'
 
 // Use an existing equality function
 const useStoreA = create<StoreState>(
@@ -199,7 +203,7 @@ const useStoreB = create<StoreState>(
 Sometimes, you may need to call a function when the temporal store is updated. This can be configured using `onSave` in the options, or by programmatically setting the callback if you need lexical context (see the `TemporalState` API below for more information).
 
 ```tsx
-import shallow from 'zustand/shallow'
+import { shallow } from 'zustand/shallow'
 
 const useStoreA = create<StoreState>(
   temporal(
@@ -234,7 +238,7 @@ When using zustand with the `temporal` middleware, a `temporal` object is attach
 
 Use `temporal.getState()` to access to temporal store!
 
-> While `setState`, `subscribe`, and `destory` exist on `temporal`, you should not use them.
+> While `setState`, `subscribe`, and `destory` exist on `temporal`, you should not need to use them.
 
 #### **React Hooks**
 
@@ -341,6 +345,8 @@ interface TemporalState<TState> {
 
 <details>
 <summary>Click to expand</summary>
+
+This is a work in progress. Submit a PR!
 
 </details>
 

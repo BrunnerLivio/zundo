@@ -1,9 +1,8 @@
 import throttle from 'lodash.throttle';
 import { Button } from 'ui';
-import { temporal } from 'zundo';
-import create from 'zustand';
-import createVanilla from 'zustand/vanilla';
-import shallow from 'zustand/shallow';
+import { temporal, type TemporalState } from 'zundo';
+import { useStore, createStore } from 'zustand';
+import { shallow } from 'zustand/shallow';
 
 interface MyState {
   count: number;
@@ -26,13 +25,19 @@ const withZundo = temporal<MyState>(
   },
 );
 
-const originalStore = createVanilla(withZundo);
+const originalStore = createStore(withZundo);
 
-const useStore = create(originalStore);
-const useTemporalStore = create(originalStore.temporal);
+const useBaseStore = <T,>(
+  selector: (state: MyState) => T,
+  equality?: (a: T, b: T) => boolean,
+) => useStore(originalStore, selector, equality);
+const useTemporalStore = <T,>(
+  selector: (state: TemporalState<MyState>) => T,
+  equality?: (a: T, b: T) => boolean,
+) => useStore(originalStore.temporal, selector, equality);
 
 export default function Web() {
-  const { count, increment, decrement } = useStore((state) => state);
+  const { count, increment, decrement } = useBaseStore((state) => state);
   const { futureStates, pastStates, undo } = useTemporalStore(
     (state) => state,
     shallow,
